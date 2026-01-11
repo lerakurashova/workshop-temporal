@@ -1,12 +1,16 @@
 from datetime import timedelta
 from temporalio import workflow
+from temporalio.client import Client
+import asyncio
 
-# import your activity functions (registered in your worker)
-from temporal_activities import list_podcast_videos, process_video
+from temporal-activities import list_podcast_videos, process_video
+
 @workflow.defn
 class PodcastWorkflow:
     @workflow.run
     async def run(self, commit_id: str) -> dict:
+        workflow.logger.info(f"Listing podcast videos from commit_id={commit_id}...")
+        
         videos = await workflow.execute_activity(
             list_podcast_videos,
             commit_id,
@@ -15,6 +19,8 @@ class PodcastWorkflow:
 
         total = len(videos)
         processed = skipped = failed = 0
+
+        workflow.logger.info(f"Processing videos transcripts to ElasticSearch...")
 
         for i, video in enumerate(videos, start=1):
             video_id = video["video_id"]
@@ -41,6 +47,7 @@ class PodcastWorkflow:
                 workflow.logger.exception("Failed video_id=%s", video_id)
 
         return {
+            "status": "completed",
             "total": total,
             "processed": processed,
             "skipped": skipped,

@@ -1,14 +1,14 @@
 import requests
 import yaml
-import logging
 from youtube_transcript_api import YouTubeTranscriptApi
 import os
 from urllib.parse import quote
 from youtube_transcript_api.proxies import WebshareProxyConfig
 from elasticsearch import Elasticsearch
+from temporalio import activity
 
-logger = logging.getLogger(__name__)
 
+@activity.defn
 def list_podcast_videos(commit_id: str):
     url = f"https://raw.githubusercontent.com/DataTalksClub/datatalksclub.github.io/{commit_id}/_data/events.yaml"
 
@@ -18,7 +18,7 @@ def list_podcast_videos(commit_id: str):
     events_data = yaml.safe_load(r.text) #YAML parsing - YAML is text, not bytes.
 
     podcasts = [d for d in events_data if (d.get("type") == "podcast") and (d.get("youtube"))]
-    logger.info(f"Found {len(podcasts)} podcast videos")
+    activity.logger.info(f"Found {len(podcasts)} podcast videos")
 
     videos = []
     for podcast in podcasts:
@@ -32,7 +32,7 @@ def list_podcast_videos(commit_id: str):
 
         videos.append({"title": podcast["title"], "video_id": video_id})
 
-    logger.info(f"Will process {len(videos)} videos")
+    activity.logger.info(f"Will process {len(videos)} videos")
     return videos
 
 def format_timestamp(seconds: float) -> str:
@@ -61,6 +61,7 @@ def create_proxy_config():
         filter_ip_locations=["de", "us"],
     )
 
+@activity.defn
 def process_video(video_id: str, title: str) -> str:
     es = Elasticsearch("http://localhost:9200")
 
