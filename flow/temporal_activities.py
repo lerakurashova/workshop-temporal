@@ -47,10 +47,11 @@ def format_timestamp(seconds: float) -> str:
 def make_subtitles(transcript) -> str:
     lines = []
     for entry in transcript:
-        ts = format_timestamp(entry["start"])
-        text = entry["text"].replace("\n", " ")
+        ts = format_timestamp(entry.start)
+        text = entry.text.replace("\n", " ")
         lines.append(f"{ts} {text}")
     return "\n".join(lines)
+
 
 def create_proxy_config():
     PROXY_USER = os.environ["WEBSHARE_PROXY_USER"]
